@@ -1,5 +1,5 @@
 const express = require('express');
-const Client = require('ssh2-sftp-client');
+const FTP = require('ftp');
 const { promisify } = require('util');
 const fs = require('fs');
 const path = require('path');
@@ -8,7 +8,7 @@ const { spawn } = require('child_process');
 const app = express();
 const port = 3000;
 
-const sftp = new Client();
+const ftp = new FTP();
 
 const decryptFile = async (encryptedFilePath, privateKeyPath) => {
     const decryptedFilePath = encryptedFilePath.replace(/\.gpg$/, '');
@@ -37,17 +37,29 @@ const convertToCsv = async (decryptedFilePath) => {
 };
 
 const downloadFile = async (ftpPath, localPath) => {
-    await sftp.fastGet(ftpPath, localPath);
-    console.log(`Downloaded file: ${ftpPath} -> ${localPath}`);
+    await new Promise((resolve, reject) => {
+        ftp.get(ftpPath, (err, stream) => {
+            if (err) {
+                reject(err);
+                return;
+            }
+            stream.once('close', () => {
+                console.log(`Downloaded file: ${ftpPath} -> ${localPath}`);
+                resolve();
+            });
+            stream.pipe(fs.createWriteStream(localPath));
+        });
+    });
 };
 
 app.get('/getEasyJetFilesFromFtp', async (req, res) => {
     try {
-        await sftp.connect({
-            host: 'ezy-sftp.atcoretec.com',
+        await promisify(ftp.connect.bind(ftp))({
+            host: 'http://ezy-ftp.atcoretec.com',
             port: 22,
-            username: 'dmc_cosmo',
-            password: '~f0q/ugRR*K]'
+            user: 'dmc_cosmo',
+            password: '~f0q/ugRR*K]',
+            secure: true
         });
 
         const date = new Date();
@@ -70,7 +82,7 @@ app.get('/getEasyJetFilesFromFtp', async (req, res) => {
         console.error(err);
         res.status(500).send('Error fetching file');
     } finally {
-        sftp.end();
+        ftp.end();
     }
 });
 
