@@ -1,88 +1,54 @@
 const express = require('express');
-const FTP = require('ftp');
-const { promisify } = require('util');
 const fs = require('fs');
 const path = require('path');
-const { spawn } = require('child_process');
-
 const app = express();
 const port = 3000;
 
-const ftp = new FTP();
+//load sftp module
+const Client = require('ssh2-sftp-client');
+const sftp = new Client();
 
-const decryptFile = async (encryptedFilePath, privateKeyPath) => {
-    const decryptedFilePath = encryptedFilePath.replace(/\.gpg$/, '');
-    const openssl = spawn('openssl', [
-        'smime', '-decrypt',
-        '-in', encryptedFilePath,
-        '-inform', 'DER',
-        '-binary',
-        '-recip', privateKeyPath,
-        '-out', decryptedFilePath
-    ]);
-    await promisify(openssl.on.bind(openssl))('exit');
+
+const decryptFile = async (encryptedFilePath, privateKeyPath, publicKeyPath) => {
+    let decryptedFilePath;
+    try {
+        let encryptedMessage = fs.createReadStream(path.join(__dirname, encryptedFilePath));
+        encryptedMessage = await openpgp.message.read(encryptedMessage);
+        let privateKey = await fs.promises.readFile(path.join(__dirname, privateKeyPath));
+        privateKey = await openpgp.key.readArmored(privateKey);
+        var passphrase = `3/qhYaH_9t6)4Xyk/,#Y`;
+        await privateKey.keys[0].decrypt(passphrase);
+        let publicKey = await fs.promises.readFile(path.join(__dirname, publicKeyPath));
+        publicKey = await openpgp.key.read(publicKey);
+        let options = {
+            message: encryptedMessage,
+            publicKeys: publicKey.keys,
+            privateKeys: privateKey.keys
+        }
+        const { data: decryptedMessage } = await openpgp.decrypt(options);
+        decryptedFilePath = encryptedFilePath.replace(/\.[^.]+$/, '.txt');
+        await fs.promises.writeFile(decryptedFilePath, decryptedMessage);
+    } catch (err) {
+        console.log(err)
+    }
+
     return decryptedFilePath;
-};
-
-const convertToCsv = async (decryptedFilePath) => {
-    const csvFilePath = decryptedFilePath.replace(/\.[^.]+$/, '.csv');
-    const openssl = spawn('openssl', [
-        'enc', '-d',
-        '-aes-256-cbc',
-        '-in', decryptedFilePath,
-        '-out', csvFilePath
-    ]);
-    await promisify(openssl.on.bind(openssl))('exit');
-    return csvFilePath;
-};
-
-const downloadFile = async (ftpPath, localPath) => {
-    await new Promise((resolve, reject) => {
-        ftp.get(ftpPath, (err, stream) => {
-            if (err) {
-                reject(err);
-                return;
-            }
-            stream.once('close', () => {
-                console.log(`Downloaded file: ${ftpPath} -> ${localPath}`);
-                resolve();
-            });
-            stream.pipe(fs.createWriteStream(localPath));
-        });
-    });
 };
 
 app.get('/getEasyJetFilesFromFtp', async (req, res) => {
     try {
-        await promisify(ftp.connect.bind(ftp))({
-            host: 'http://ezy-ftp.atcoretec.com',
-            port: 22,
-            user: 'dmc_cosmo',
-            password: '~f0q/ugRR*K]',
-            secure: true
+        await sftp.connect({
+            host: 'ezy-sftp.atcoretec.com',
+            port: '22',
+            username: 'dmc_cosmo',
+            password: '~f0q/ugRR*K]'
         });
-
-        const date = new Date();
-        const formattedDate = `${date.getFullYear()}-${(date.getMonth() + 1).toString().padStart(2, '0')}-${date.getDate().toString().padStart(2, '0')}`;
-        const fileName = `COSM_${formattedDate}.gpg`;
-        const ftpPath = `/path/to/${fileName}`;
-        const localPath = path.join(__dirname, fileName);
-
-        await downloadFile(ftpPath, localPath);
-
-        const decryptedFilePath = await decryptFile(localPath, path.join(__dirname, 'COSM_private.key'));
-
-        const csvFilePath = await convertToCsv(decryptedFilePath);
-
-        const csvContent = fs.readFileSync(csvFilePath, 'utf8');
-        console.log(csvContent);
-
-        res.send('File downloaded and converted to CSV');
+        const list = await sftp.list('/');
+        console.log(list, 'the list of files')
+        return res.status(200).send(list);
     } catch (err) {
         console.error(err);
         res.status(500).send('Error fetching file');
-    } finally {
-        ftp.end();
     }
 });
 
