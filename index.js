@@ -27,8 +27,12 @@ const decryptFile = async (encryptedFilePath, privateKeyPath, publicKeyPath) => 
             privateKeys: privateKey.keys
         }
         let decryptedMessage = await openpgp.decrypt(options);
-        return decryptedMessage;
-        return decryptedMessage;
+        //decryptedMessage.data is a NodeReadableStream so we need to convert it to a string before we can use it
+        decryptedMessage = await streamWait(decryptedMessage.data);
+        decryptedFilePath = path.join(__dirname, 'decryptedFile.txt');
+        fs.writeFileSync(decryptedFilePath, decryptedMessage);
+
+        return decryptedFilePath;
     } catch (err) {
         console.log(err)
     }
@@ -54,9 +58,9 @@ app.get('/getEasyJetFilesFromFtp', async (req, res) => {
         let downloadedFile = path.join(__dirname, cryptFile.name);
         console.log(downloadedFile);
         const msg = await decryptFile(downloadedFile, './private_key.asc', './pub_key.asc');
-        // read the decrypted file
-        //parse the file as if it was a csv
-        console.log(msg);
+        //read msg file path
+        const file = fs.readFileSync(msg, 'utf8');
+        console.log(file);
 
         return res.status(200).json({ success: true });
     } catch (err) {
@@ -64,7 +68,12 @@ app.get('/getEasyJetFilesFromFtp', async (req, res) => {
         res.status(500).send('Error fetching file');
     }
 });
-
+async function streamWait(stream) {
+    return new Promise((resolve, reject) => {
+        stream.on('end', resolve);
+        stream.on('error', reject);
+    });
+}
 app.listen(port, () => {
     console.log(`Example app listening at http://localhost:${port}`);
 });
