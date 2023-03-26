@@ -22,7 +22,7 @@ const decryptFile = async (encryptedFilePath, privateKeyPath) => {
         }
     });
 
-    return new Promise((resolve, reject) => {
+    return await new Promise((resolve, reject) => {
         gpg.decryptFile(encryptedFilePath, function (err, result) {
             if (err) {
                 console.log('Error decrypting file: ' + err);
