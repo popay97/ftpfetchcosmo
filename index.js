@@ -19,18 +19,16 @@ const decryptFile = async (encryptedFilePath, privateKeyPath, publicKeyPath) => 
     const passphrase = 'COSMpass';
     const publicKeyObj = await openpgp.readKey({ armoredKey: publicKey });
     const privateKeyObj = await openpgp.decryptKey({
-        privateKey: await openpgp.readKey({ armoredKey: privateKey }),
+        privateKey: await openpgp.readKey({ armoredKey: privateKeyArmored }),
         passphrase,
     });
-    const options = {
-        message: await openpgp.Message.read(encryptedData),
-        publicKeys: publicKeyObj.keys,
-        privateKey: privateKeyObj.keys[0],
-    };
-
-    const decrypted = await openpgp.decrypt(options);
-
-    return decrypted.data;
+    const { data: decrypted, signatures } = await openpgp.decrypt({
+        message,
+        decryptionKeys: privateKey,
+        expectSigned: true,
+        verificationKeys: publicKey, // mandatory with expectSigned=true
+    });
+    return decrypted;
 };
 
 app.get('/getEasyJetFilesFromFtp', async (req, res) => {
