@@ -43,7 +43,7 @@ app.get('/getEasyJetFilesFromFtp', async (req, res) => {
             username: 'dmc_cosmo',
             password: '~f0q/ugRR*K]'
         });
-        const list = await sftp.list('/dmc_cosmo/');
+        const list = await sftp.list('/dmc_cosmo');
         console.log(list, 'the list of files')
         return res.status(200).send(list);
     } catch (err) {
