@@ -18,16 +18,12 @@ const decryptFile = async (encryptedFilePath, privateKeyPath, publicKeyPath) => 
     const message = await openpgp.readMessage({
         armoredMessage: sourceStream // parse armored message
     });
-    const privateKey = await fs.promises.readFile(privateKeyPath);
-    //remove all whitespace from the private key
-    const privateKeyWithoutWhitespace = privateKey.replace(/\s/g, '');
-    const publicKey = await fs.promises.readFile(publicKeyPath);
-    //remove all whitespace from the public key
-    const publicKeyWithoutWhitespace = publicKey.replace(/\s/g, '');
+    const privateKey = fs.createReadStream(privateKeyPath, 'utf8');
+    const publicKey = fs.createReadStream(publicKeyPath, 'utf8');
     const passphrase = 'COSMpass';
-    const publicKeyObj = await openpgp.readKey({ armoredKey: privateKeyWithoutWhitespace });
+    const publicKeyObj = await openpgp.readKey({ armoredKey: publicKey });
     const privateKeyObj = await openpgp.decryptKey({
-        privateKey: await openpgp.readKey({ armoredKey: publicKeyWithoutWhitespace }),
+        privateKey: await openpgp.readKey({ armoredKey: privateKey }),
         passphrase,
     });
     const { data: decrypted, signatures } = await openpgp.decrypt({
