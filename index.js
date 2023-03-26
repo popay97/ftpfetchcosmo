@@ -3,9 +3,9 @@ const fs = require('fs');
 const path = require('path');
 const app = express();
 const port = 3000;
-const openpgp = require('openpgp');
+const { decrypt } = require('gpg');
 
-//load sftp module
+// load sftp module
 const Client = require('ssh2-sftp-client');
 const sftp = new Client();
 
@@ -13,38 +13,17 @@ const privateKeyPath = './private_key.asc'; // Update with the actual path to yo
 const publicKeyPath = './pub_key.asc'; // Update with the actual path to your public key file
 
 const decryptFile = async (encryptedFilePath, privateKeyPath, publicKeyPath) => {
-    //remove all new lines and spaces
-    const encryptedData = fs.readFileSync(encryptedFilePath, 'utf8')
-    var encryptedMessage;
-    if (encryptedData.startsWith('-----BEGIN PGP MESSAGE-----'))
-        encryptedMessage = await openpgp.readMessage({ armoredMessage: encryptedData })
-    else {
-        var TextEncoder = require('text-encoding').TextEncoder;
-        var encryptedUint8 = new TextEncoder().encode(encryptedData);
-        encryptedMessage = await openpgp.readMessage({ binaryMessage: encryptedUint8 })
-    }
-
-    let privateKey = fs.readFileSync(privateKeyPath, 'utf8');
-    privateKey.replace(/(\r\n|\n|\r)/gm, "");
-    privateKey = `${privateKey}`
-    console.log(privateKey);
-    let publicKey = fs.readFileSync(publicKeyPath, 'utf8');
-    publicKey.replace(/(\r\n|\n|\r)/gm, "");
-    publicKey = `${publicKey}`
-    console.log(publicKey);
+    const encryptedData = fs.readFileSync(encryptedFilePath);
+    const privateKey = fs.readFileSync(privateKeyPath);
+    const publicKey = fs.readFileSync(publicKeyPath);
     const passphrase = 'COSMpass';
-    const publicKeyObj = await openpgp.readKey({ armoredKey: publicKey });
-    const privateKeyObj = await openpgp.decryptKey({
-        privateKey: await openpgp.readKey({ armoredKey: privateKey }),
-        passphrase,
+    const decryptedData = await decrypt({
+        message: encryptedData,
+        privateKey: privateKey,
+        publicKey: publicKey,
+        passphrase: passphrase,
     });
-    const { data: decrypted, signatures } = await openpgp.decrypt({
-        message: encryptedMessage,
-        decryptionKeys: privateKeyObj,
-        expectSigned: true,
-        verificationKeys: publicKeyObj, // mandatory with expectSigned=true
-    });
-    return decrypted;
+    return decryptedData.data;
 };
 
 app.get('/getEasyJetFilesFromFtp', async (req, res) => {
@@ -53,11 +32,11 @@ app.get('/getEasyJetFilesFromFtp', async (req, res) => {
             host: 'ezy-sftp.atcoretec.com',
             port: '22',
             username: 'dmc_cosmo',
-            password: '~f0q/ugRR*K]'
+            password: '~f0q/ugRR*K]',
         });
         const list = await sftp.list('/dmc_cosmo/Cosmo/outgoing/live');
         // grab the file COSM_2023-03-26.gpg
-        const cryptFile = list.find(file => file.name === 'COSM_2023-03-26.gpg');
+        const cryptFile = list.find((file) => file.name === 'COSM_2023-03-26.gpg');
         // download the file
         const downloadedFilePath = path.join(__dirname, cryptFile.name);
         await sftp.get(`/dmc_cosmo/Cosmo/outgoing/live/${cryptFile.name}`, downloadedFilePath);
