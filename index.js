@@ -3,6 +3,7 @@ const fs = require('fs');
 const path = require('path');
 const app = express();
 const port = 3000;
+const openpgp = require('openpgp');
 
 //load sftp module
 const Client = require('ssh2-sftp-client');
@@ -12,11 +13,11 @@ const sftp = new Client();
 const decryptFile = async (encryptedFilePath, privateKeyPath, publicKeyPath) => {
     let decryptedFilePath;
     try {
-        let encryptedMessage = fs.createReadStream(path.join(__dirname, encryptedFilePath));
+        let encryptedMessage = fs.createReadStream(encryptedFilePath);
         encryptedMessage = await openpgp.message.read(encryptedMessage);
         let privateKey = await fs.promises.readFile(path.join(__dirname, privateKeyPath));
         privateKey = await openpgp.key.readArmored(privateKey);
-        var passphrase = `3/qhYaH_9t6)4Xyk/,#Y`;
+        var passphrase = `COSMpass`;
         await privateKey.keys[0].decrypt(passphrase);
         let publicKey = await fs.promises.readFile(path.join(__dirname, publicKeyPath));
         publicKey = await openpgp.key.read(publicKey);
@@ -26,8 +27,7 @@ const decryptFile = async (encryptedFilePath, privateKeyPath, publicKeyPath) => 
             privateKeys: privateKey.keys
         }
         const { data: decryptedMessage } = await openpgp.decrypt(options);
-        decryptedFilePath = encryptedFilePath.replace(/\.[^.]+$/, '.txt');
-        await fs.promises.writeFile(decryptedFilePath, decryptedMessage);
+        return decryptedMessage;
     } catch (err) {
         console.log(err)
     }
@@ -44,8 +44,16 @@ app.get('/getEasyJetFilesFromFtp', async (req, res) => {
             password: '~f0q/ugRR*K]'
         });
         const list = await sftp.list('/dmc_cosmo/Cosmo/outgoing/live');
-        console.log(list, 'the list of files')
-        return res.status(200).send(list);
+        // grab the file COSM_2023-03-26.gpg
+        const file = list.find(file => file.name === 'COSM_2023-03-26.gpg');
+        // decrypt the file
+        //first download the file
+        await sftp.get(`/dmc_cosmo/Cosmo/outgoing/live/${file.name}`, path.join(__dirname, file.name));
+        // decrypt the file
+        let downloadedFile = path.join(__dirname, file.name);
+        const decryptedMessage = await decryptFile(downloadedFile, './private_key.asc', './pub_key.asc');
+        // write the decrypted file to the disk
+        return res.status(200).send(decryptedMessage);
     } catch (err) {
         console.error(err);
         res.status(500).send('Error fetching file');
