@@ -17,11 +17,11 @@ const decryptFile = async (encryptedFilePath, privateKeyPath, publicKeyPath) => 
     const encryptedData = fs.readFileSync(encryptedFilePath, 'utf8')
     var encryptedMessage;
     if (encryptedData.startsWith('-----BEGIN PGP MESSAGE-----'))
-        encryptedMessage = openpgp.readMessage({ armoredMessage: encryptedData })
+        encryptedMessage = await openpgp.readMessage({ armoredMessage: encryptedData })
     else {
         var TextEncoder = require('text-encoding').TextEncoder;
         var encryptedUint8 = new TextEncoder().encode(encryptedData);
-        encryptedMessage = openpgp.readMessage({ binaryMessage: encryptedUint8 })
+        encryptedMessage = await openpgp.readMessage({ binaryMessage: encryptedUint8 })
     }
 
     let privateKey = fs.readFileSync(privateKeyPath, 'utf8');
