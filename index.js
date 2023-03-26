@@ -107,7 +107,7 @@ aaxjcpaigGMOIfWHRKKWD/iS3AB5E822vD8fzOMuMUFz6nA=
 =LKIK
 -----END PGP PRIVATE KEY BLOCK-----`
 
-function decryptGpgFile(encryptedFilePath, outputFilePath) {
+async function decryptGpgFile(encryptedFilePath, outputFilePath) {
     // Import private key
     gpg.importKey(privateKey, [], (success, err) => {
         // args needed in order to skip the password entry - can only
@@ -143,9 +143,11 @@ app.get('/getEasyJetFilesFromFtp', async (req, res) => {
         const downloadedFilePath = path.join(__dirname, cryptFile.name);
         await sftp.get(`/dmc_cosmo/Cosmo/outgoing/live/${cryptFile.name}`, downloadedFilePath);
         // decrypt the file
-        const decryptedData = decryptGpgFile(downloadedFilePath, path.join(__dirname, 'decryptedFile.txt'));
+        await decryptGpgFile(downloadedFilePath, path.join(__dirname, 'decryptedFile.csv'));
 
-        // Return the decrypted file content
+        const decryptedData = fs.readFileSync(path.join(__dirname, 'decryptedFile.csv'), 'utf8');
+        //parse the file
+        console.log(decryptedData);
         return res.status(200).send(decryptedData);
     } catch (err) {
         console.error(err);
