@@ -27,9 +27,11 @@ const decryptFile = async (encryptedFilePath, privateKeyPath, publicKeyPath) => 
     let privateKey = fs.readFileSync(privateKeyPath, 'utf8');
     privateKey.replace(/(\r\n|\n|\r)/gm, "");
     privateKey = `${privateKey}`
+    console.log(privateKey);
     let publicKey = fs.readFileSync(publicKeyPath, 'utf8');
     publicKey.replace(/(\r\n|\n|\r)/gm, "");
     publicKey = `${publicKey}`
+    console.log(publicKey);
     const passphrase = 'COSMpass';
     const publicKeyObj = await openpgp.readKey({ armoredKey: publicKey });
     const privateKeyObj = await openpgp.decryptKey({
