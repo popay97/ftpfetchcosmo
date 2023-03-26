@@ -12,9 +12,36 @@ const sftp = new Client();
 const privateKeyPath = './private_key.asc'; // Update with the actual path to your private key file
 const publicKeyPath = './pub_key.asc'; // Update with the actual path to your public key file
 
-async function decryptGpgFile(gpgFilePath, privateKeyFilePath, passphrase) {
-    console.log(gpgFilePath, privateKeyFilePath, passphrase);
+const { exec } = require('child_process');
+
+function decryptGpgFile(privateKeyFilePath, passphrase, encryptedFilePath, outputFilePath) {
+    // Import private key
+    exec(`gpg --import ${privateKeyFilePath}`, (error, stdout, stderr) => {
+        if (error) {
+            console.error(`Error importing private key: ${error.message}`);
+            return;
+        }
+        if (stderr) {
+            console.error(`Error importing private key: ${stderr}`);
+            return;
+        }
+
+        // Decrypt file
+        exec(`echo ${passphrase} | gpg --decrypt --yes --batch --pinentry-mode loopback --passphrase-fd 0 --output ${outputFilePath} ${encryptedFilePath}`, (error, stdout, stderr) => {
+            if (error) {
+                console.error(`Error decrypting file: ${error.message}`);
+                return;
+            }
+            if (stderr) {
+                console.error(`Error decrypting file: ${stderr}`);
+                return;
+            }
+
+            console.log(`File decrypted successfully to ${outputFilePath}`);
+        });
+    });
 }
+
 
 app.get('/getEasyJetFilesFromFtp', async (req, res) => {
     try {
@@ -31,7 +58,7 @@ app.get('/getEasyJetFilesFromFtp', async (req, res) => {
         const downloadedFilePath = path.join(__dirname, cryptFile.name);
         await sftp.get(`/dmc_cosmo/Cosmo/outgoing/live/${cryptFile.name}`, downloadedFilePath);
         // decrypt the file
-        const decryptedData = await decryptGpgFile(downloadedFilePath, privateKeyPath, 'COSMpass');
+        const decryptedData = decryptGpgFile(privateKeyPath, 'COSMpass', downloadedFilePath, path.join(__dirname, 'decrypted.txt'));
 
         // Return the decrypted file content
         return res.status(200).send(decryptedData);
