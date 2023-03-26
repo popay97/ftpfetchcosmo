@@ -16,12 +16,12 @@ const decryptFile = async (encryptedFilePath, privateKeyPath, publicKeyPath) => 
     const encryptedData = await fs.promises.readFile(encryptedFilePath);
     const privateKey = await fs.promises.readFile(privateKeyPath, 'utf-8');
     const publicKey = await fs.promises.readFile(publicKeyPath, 'utf-8');
-
-    const privateKeyObj = await openpgp.Key.readArmored(privateKey);
-    await privateKeyObj.keys[0].decrypt('COSMpass');
-
-    const publicKeyObj = await openpgp.Key.readArmored(publicKey);
-
+    const passphrase = 'COSMpass';
+    const publicKeyObj = await openpgp.readKey({ armoredKey: publicKey });
+    const privateKeyObj = await openpgp.decryptKey({
+        privateKey: await openpgp.readKey({ armoredKey: privateKeyArmored }),
+        passphrase,
+    });
     const options = {
         message: await openpgp.Message.read(encryptedData),
         publicKeys: publicKeyObj.keys,
