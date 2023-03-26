@@ -19,7 +19,7 @@ const decryptFile = async (encryptedFilePath, privateKeyPath, publicKeyPath) => 
     const passphrase = 'COSMpass';
     const publicKeyObj = await openpgp.readKey({ armoredKey: publicKey });
     const privateKeyObj = await openpgp.decryptKey({
-        privateKey: await openpgp.readKey({ armoredKey: privateKeyArmored }),
+        privateKey: await openpgp.readKey({ armoredKey: privateKey }),
         passphrase,
     });
     const options = {
