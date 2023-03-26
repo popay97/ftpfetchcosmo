@@ -13,15 +13,7 @@ const privateKeyPath = './private_key.asc'; // Update with the actual path to yo
 const publicKeyPath = './pub_key.asc'; // Update with the actual path to your public key file
 
 async function decryptGpgFile(gpgFilePath, privateKeyFilePath, passphrase) {
-    return new Promise((resolve, reject) => {
-        gpg.decryptFile(gpgFilePath, privateKeyFilePath, passphrase, (err, data) => {
-            if (err) {
-                reject(err);
-            } else {
-                resolve(data);
-            }
-        });
-    });
+    consolg.log(gpgFilePath, privateKeyFilePath, passphrase);
 }
 
 app.get('/getEasyJetFilesFromFtp', async (req, res) => {
