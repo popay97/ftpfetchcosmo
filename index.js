@@ -14,7 +14,7 @@ const publicKeyPath = './pub_key.asc'; // Update with the actual path to your pu
 
 const decryptFile = async (encryptedFilePath, privateKeyPath) => {
     var passphrase = 'COSMpass';
-    gpg.importKeyFromFile(privateKeyPath, passphrase, function (err, result) {
+    gpg.importKeyFromFile(privateKeyPath, [passphrase], function (err, result) {
         if (err) {
             console.log('Error importing key: ' + err);
         } else {
