@@ -17,6 +17,7 @@ const decryptFile = async (encryptedFilePath, privateKeyPath, publicKeyPath) => 
     //remove all new lines and spaces
     sourceStream.replace(/(\r\n|\n|\r)/gm, "");
     sourceStream = `${sourceStream}`
+    console.log(sourceStream)
     const message = await openpgp.readMessage({
         armoredMessage: sourceStream // parse armored message
     });
