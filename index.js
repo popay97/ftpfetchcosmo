@@ -54,7 +54,8 @@ app.get('/getEasyJetFilesFromFtp', async (req, res) => {
         console.log(downloadedFile);
         const decrypted = await decryptFile(downloadedFile, './private_key.asc', './pub_key.asc');
         // write the decrypted file to the disk
-        return res.status(200).send(decrypted);
+        console.log(decrypted);
+        return res.status(200).json({message: decrypted, success: true});
     } catch (err) {
         console.error(err);
         res.status(500).send('Error fetching file');
