@@ -10,7 +10,7 @@ const Client = require('ssh2-sftp-client');
 const sftp = new Client();
 
 const privateKeyPath = './private_key.asc'; // Update with the actual path to your private key file
-const publicKeyPath = '/pub_key.asc'; // Update with the actual path to your public key file
+const publicKeyPath = './pub_key.asc'; // Update with the actual path to your public key file
 
 const decryptFile = async (encryptedFilePath, privateKeyPath, publicKeyPath) => {
     const encryptedData = await fs.promises.readFile(encryptedFilePath);
