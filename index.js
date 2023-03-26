@@ -14,6 +14,9 @@ const publicKeyPath = './pub_key.asc'; // Update with the actual path to your pu
 
 const decryptFile = async (encryptedFilePath, privateKeyPath, publicKeyPath) => {
     const encryptedData = await fs.promises.readFile(encryptedFilePath, 'utf-8');
+    const message = await openpgp.readMessage({
+        armoredMessage: encryptedData // parse armored message
+    });
     const privateKey = await fs.promises.readFile(privateKeyPath, 'utf-8');
     const publicKey = await fs.promises.readFile(publicKeyPath, 'utf-8');
     const passphrase = 'COSMpass';
@@ -23,7 +26,7 @@ const decryptFile = async (encryptedFilePath, privateKeyPath, publicKeyPath) => 
         passphrase,
     });
     const { data: decrypted, signatures } = await openpgp.decrypt({
-        encryptedData,
+        message,
         decryptionKeys: privateKeyObj,
         expectSigned: true,
         verificationKeys: publicKeyObj, // mandatory with expectSigned=true
