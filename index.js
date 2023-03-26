@@ -3,7 +3,7 @@ const fs = require('fs');
 const path = require('path');
 const app = express();
 const port = 3000;
-const { decrypt } = require('gpg');
+const gpg = require('gpg');
 
 // load sftp module
 const Client = require('ssh2-sftp-client');
@@ -12,18 +12,28 @@ const sftp = new Client();
 const privateKeyPath = './private_key.asc'; // Update with the actual path to your private key file
 const publicKeyPath = './pub_key.asc'; // Update with the actual path to your public key file
 
-const decryptFile = async (encryptedFilePath, privateKeyPath, publicKeyPath) => {
-    const encryptedData = fs.createReadStream(encryptedFilePath, 'utf8');
-    const privateKey = fs.readFileSync(privateKeyPath, 'utf8');
-    const publicKey = fs.readFileSync(publicKeyPath, 'utf8');
-    const passphrase = 'COSMpass';
-    const decryptedData = await decrypt({
-        message: encryptedData,
-        privateKey: privateKey,
-        publicKey: publicKey,
-        passphrase: passphrase,
+const decryptFile = async (encryptedFilePath, privateKeyPath) => {
+    var passphrase = 'COSMpass';
+    gpg.importKeyFromFile(privateKeyPath, passphrase, function (err, result) {
+        if (err) {
+            console.log('Error importing key: ' + err);
+        } else {
+            console.log('Key imported: ' + result);
+        }
     });
-    return decryptedData.data;
+
+    return new Promise((resolve, reject) => {
+        gpg.decryptFile(encryptedFilePath, function (err, result) {
+            if (err) {
+                console.log('Error decrypting file: ' + err);
+                reject(err);
+            } else {
+                console.log('File decrypted: ' + result);
+                resolve(result);
+            }
+        });
+    });
+
 };
 
 app.get('/getEasyJetFilesFromFtp', async (req, res) => {
@@ -41,7 +51,7 @@ app.get('/getEasyJetFilesFromFtp', async (req, res) => {
         const downloadedFilePath = path.join(__dirname, cryptFile.name);
         await sftp.get(`/dmc_cosmo/Cosmo/outgoing/live/${cryptFile.name}`, downloadedFilePath);
         // decrypt the file
-        const decryptedData = await decryptFile(downloadedFilePath, privateKeyPath, publicKeyPath);
+        const decryptedData = await decryptFile(downloadedFilePath, privateKeyPath);
 
         // Return the decrypted file content
         return res.status(200).send(decryptedData);
