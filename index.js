@@ -27,8 +27,7 @@ const decryptFile = async (encryptedFilePath, privateKeyPath, publicKeyPath) => 
             privateKeys: privateKey.keys
         }
         let decryptedMessage = await openpgp.decrypt(options);
-        //write the decrypted file to the disk
-        //read msg.txt
+        return decryptedMessage;
         return decryptedMessage;
     } catch (err) {
         console.log(err)
@@ -54,11 +53,10 @@ app.get('/getEasyJetFilesFromFtp', async (req, res) => {
         // decrypt the file
         let downloadedFile = path.join(__dirname, cryptFile.name);
         console.log(downloadedFile);
-        await decryptFile(downloadedFile, './private_key.asc', './pub_key.asc');
+        const msg = await decryptFile(downloadedFile, './private_key.asc', './pub_key.asc');
         // read the decrypted file
-        const decrypted = fs.readFileSync(path.join(__dirname, 'msg.txt'), 'utf8');
         //parse the file as if it was a csv
-        console.log(decrypted);
+        console.log(msg);
 
         return res.status(200).json({ success: true });
     } catch (err) {
