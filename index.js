@@ -27,7 +27,7 @@ const decryptFile = async (encryptedFilePath, privateKeyPath, publicKeyPath) => 
             privateKeys: privateKey.keys
         }
         const { data: decryptedMessage } = await openpgp.decrypt(options);
-        return decryptedMessage;
+        return data;
     } catch (err) {
         console.log(err)
     }
