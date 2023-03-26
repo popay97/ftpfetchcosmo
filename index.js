@@ -16,6 +16,8 @@ const { exec } = require('child_process');
 
 function decryptGpgFile(privateKeyFilePath, passphrase, encryptedFilePath, outputFilePath) {
     // Import private key
+    privateKeyFilePath = path.join(__dirname, privateKeyFilePath);
+    encryptedFilePath = path.join(__dirname, encryptedFilePath);
     exec(`gpg --import ${privateKeyFilePath}`, (error, stdout, stderr) => {
         if (error) {
             console.error(`Error importing private key: ${error.message}`);
