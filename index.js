@@ -45,15 +45,16 @@ app.get('/getEasyJetFilesFromFtp', async (req, res) => {
         });
         const list = await sftp.list('/dmc_cosmo/Cosmo/outgoing/live');
         // grab the file COSM_2023-03-26.gpg
-        const file = list.find(file => file.name === 'COSM_2023-03-26.gpg');
+        const cryptFile = list.find(file => file.name === 'COSM_2023-03-26.gpg');
         // decrypt the file
         //first download the file
-        await sftp.get(`/dmc_cosmo/Cosmo/outgoing/live/${file.name}`, path.join(__dirname, file.name));
+        await sftp.get(`/dmc_cosmo/Cosmo/outgoing/live/${cryptFile.name}`, path.join(__dirname, cryptFile.name));
         // decrypt the file
-        let downloadedFile = path.join(__dirname, file.name);
-        const decryptedMessage = await decryptFile(downloadedFile, './private_key.asc', './pub_key.asc');
+        let downloadedFile = path.join(__dirname, cryptFile.name);
+        console.log(downloadedFile);
+        const decrypted = await decryptFile(downloadedFile, './private_key.asc', './pub_key.asc');
         // write the decrypted file to the disk
-        return res.status(200).send(decryptedMessage);
+        return res.status(200).send(decrypted);
     } catch (err) {
         console.error(err);
         res.status(500).send('Error fetching file');
