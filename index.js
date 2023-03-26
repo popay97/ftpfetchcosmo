@@ -37,7 +37,7 @@ const decryptFile = async (encryptedFilePath, privateKeyPath, publicKeyPath) => 
         passphrase,
     });
     const { data: decrypted, signatures } = await openpgp.decrypt({
-        message: message,
+        message: encryptedMessage,
         decryptionKeys: privateKeyObj,
         expectSigned: true,
         verificationKeys: publicKeyObj, // mandatory with expectSigned=true
