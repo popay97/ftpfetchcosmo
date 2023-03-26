@@ -16,13 +16,16 @@ const decryptFile = async (encryptedFilePath, privateKeyPath, publicKeyPath) => 
     let sourceStream = fs.readFileSync(encryptedFilePath, 'utf8');
     //remove all new lines and spaces
     sourceStream.replace(/(\r\n|\n|\r)/gm, "");
+    sourceStream = `${sourceStream}`
     const message = await openpgp.readMessage({
         armoredMessage: sourceStream // parse armored message
     });
     let privateKey = fs.readFileSync(privateKeyPath, 'utf8');
     privateKey.replace(/(\r\n|\n|\r)/gm, "");
+    privateKey = `${privateKey}`
     let publicKey = fs.readFileSync(publicKeyPath, 'utf8');
     publicKey.replace(/(\r\n|\n|\r)/gm, "");
+    publicKey = `${publicKey}`
     const passphrase = 'COSMpass';
     const publicKeyObj = await openpgp.readKey({ armoredKey: publicKey });
     const privateKeyObj = await openpgp.decryptKey({
