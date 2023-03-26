@@ -12,29 +12,17 @@ const sftp = new Client();
 const privateKeyPath = './private_key.asc'; // Update with the actual path to your private key file
 const publicKeyPath = './pub_key.asc'; // Update with the actual path to your public key file
 
-const decryptFile = async (encryptedFilePath, privateKeyPath) => {
-    var passphrase = 'COSMpass';
-    gpg.importKeyFromFile(privateKeyPath, [passphrase], function (err, result) {
-        if (err) {
-            console.log('Error importing key: ' + err);
-        } else {
-            console.log('Key imported: ' + result);
-        }
-    });
-
-    return await new Promise((resolve, reject) => {
-        gpg.decryptFile(encryptedFilePath, function (err, result) {
+async function decryptGpgFile(gpgFilePath, privateKeyFilePath, passphrase) {
+    return new Promise((resolve, reject) => {
+        gpg.decryptFile(gpgFilePath, privateKeyFilePath, passphrase, (err, data) => {
             if (err) {
-                console.log('Error decrypting file: ' + err);
                 reject(err);
             } else {
-                console.log('File decrypted: ' + result);
-                resolve(result);
+                resolve(data);
             }
         });
     });
-
-};
+}
 
 app.get('/getEasyJetFilesFromFtp', async (req, res) => {
     try {
@@ -51,7 +39,7 @@ app.get('/getEasyJetFilesFromFtp', async (req, res) => {
         const downloadedFilePath = path.join(__dirname, cryptFile.name);
         await sftp.get(`/dmc_cosmo/Cosmo/outgoing/live/${cryptFile.name}`, downloadedFilePath);
         // decrypt the file
-        const decryptedData = await decryptFile(downloadedFilePath, privateKeyPath);
+        const decryptedData = await decryptGpgFile(downloadedFilePath, privateKeyPath, 'COSMpass');
 
         // Return the decrypted file content
         return res.status(200).send(decryptedData);
