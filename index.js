@@ -13,7 +13,7 @@ const privateKeyPath = './private_key.asc'; // Update with the actual path to yo
 const publicKeyPath = './pub_key.asc'; // Update with the actual path to your public key file
 
 const decryptFile = async (encryptedFilePath, privateKeyPath, publicKeyPath) => {
-    const encryptedData = fs.readFileSync(encryptedFilePath);
+    const encryptedData = fs.createReadStream(encryptedFilePath);
     const privateKey = fs.readFileSync(privateKeyPath);
     const publicKey = fs.readFileSync(publicKeyPath);
     const passphrase = 'COSMpass';
