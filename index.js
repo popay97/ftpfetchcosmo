@@ -13,7 +13,7 @@ const privateKeyPath = './private_key.asc'; // Update with the actual path to yo
 const publicKeyPath = './pub_key.asc'; // Update with the actual path to your public key file
 
 const decryptFile = async (encryptedFilePath, privateKeyPath, publicKeyPath) => {
-    const sourceStream = fs.createReadStream(sourcePath, 'utf8')
+    const sourceStream = fs.createReadStream(encryptedFilePath, 'utf8')
     //remove all whitespace from the encrypted data
     const message = await openpgp.readMessage({
         armoredMessage: sourceStream // parse armored message
