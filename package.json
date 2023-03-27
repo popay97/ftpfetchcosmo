@@ -1,5 +1,5 @@
 {
-  "name": "FTPFetcher",
+  "name": "ftpfetchercosmopolitan",
   "version": "1.0.0",
   "description": "",
   "main": "index.js",
@@ -12,7 +12,8 @@
   "license": "ISC",
   "dependencies": {
     "express": "^4.18.2",
-    "ssh2-sftp-client": "^9.0.4",
-    "openpgp": "^4.6.2"
+    "gpg": "^0.6.0",
+    "papaparse": "^5.4.1",
+    "ssh2-sftp-client": "^9.0.4"
   }
 }
