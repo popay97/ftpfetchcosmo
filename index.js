@@ -109,22 +109,29 @@ aaxjcpaigGMOIfWHRKKWD/iS3AB5E822vD8fzOMuMUFz6nA=
 
 async function decryptGpgFile(encryptedFilePath, outputFilePath) {
     // Import private key
-    gpg.importKey(privateKey, [], (success, err) => {
-        // args needed in order to skip the password entry - can only
-        // be used with callStreaming
-        const args = [
-            "--pinentry-mode",
-            "loopback",
-            "--passphrase",
-            "COSMpass",
-        ]
-        gpg.callStreaming(encryptedFilePath, outputFilePath, args, (err, success) => {
-            if (err) {
-                console.log(err)
-            }
-            console.log(success)
+    return await new Promise((resolve, reject) => {
+        gpg.importKey(privateKey, [], (success, err) => {
+            // args needed in order to skip the password entry - can only
+            // be used with callStreaming
+            const args = [
+                "--pinentry-mode",
+                "loopback",
+                "--passphrase",
+                "COSMpass",
+            ]
+            gpg.callStreaming(encryptedFilePath, outputFilePath, args, (err, success) => {
+                if (err) {
+                    console.log(err)
+                    reject(err)
+                } else {
+                    console.log(success)
+                    resolve()
+                }
+            })
         })
     })
+
+
 }
 
 
@@ -144,9 +151,9 @@ app.get('/getEasyJetFilesFromFtp', async (req, res) => {
         await sftp.get(`/dmc_cosmo/Cosmo/outgoing/live/${cryptFile.name}`, downloadedFilePath);
         // decrypt the file
         await decryptGpgFile(downloadedFilePath, path.join(__dirname, 'decryptedFile.csv'));
+        // read the decrypted file
+        const decryptedData = await fs.promises.readFile(path.join(__dirname, 'decryptedFile.csv'), 'utf8');
 
-        const decryptedData = fs.readFileSync(path.join(__dirname, 'decryptedFile.csv'), 'utf8');
-        //parse the file
         console.log(decryptedData);
         return res.status(200).send(decryptedData);
     } catch (err) {
