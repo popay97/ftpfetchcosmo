@@ -136,6 +136,8 @@ async function decryptGpgFile(encryptedFilePath, outputFilePath) {
 
 
 app.get('/getEasyJetFilesFromFtp', async (req, res) => {
+    var fileNamesToFeth = [...req.body.fileNames]
+    var parsedResults = [];
     try {
         await sftp.connect({
             host: 'ezy-sftp.atcoretec.com',
@@ -144,34 +146,39 @@ app.get('/getEasyJetFilesFromFtp', async (req, res) => {
             password: '~f0q/ugRR*K]',
         });
         const list = await sftp.list('/dmc_cosmo/Cosmo/outgoing/live');
-        // grab the file COSM_2023-03-26.gpg
-        const cryptFile = list.find((file) => file.name === 'COSM_2023-03-26.gpg');
-        // download the file
-        const downloadedFilePath = path.join(__dirname, cryptFile.name);
-        await sftp.get(`/dmc_cosmo/Cosmo/outgoing/live/${cryptFile.name}`, downloadedFilePath);
-        // decrypt the file
-        await decryptGpgFile(downloadedFilePath, path.join(__dirname, 'decryptedFile.csv'));
-        // read the decrypted file
-        const decryptedData = await fs.promises.readFile(path.join(__dirname, 'decryptedFile.csv'), 'utf8');
-        var parsedResults = [];
-        await new Promise((resolve, reject) => {
-            Papa.parse(decryptedData, {
-                header: false,
-                skipEmptyLines: true,
-                complete: (results) => {
-                    parsedResults = results.data;
-                    resolve();
-                },
-                error: (err) => {
-                    reject(err);
-                }
+        for (var i = 0; i < fileNamesToFeth.length; i++) {
+            const cryptFile = list.find((file) => file.name === fileNamesToFeth[i].trim());
+            // download the file
+            const downloadedFilePath = path.join(__dirname, cryptFile.name);
+            await sftp.get(`/dmc_cosmo/Cosmo/outgoing/live/${cryptFile.name}`, downloadedFilePath);
+            // decrypt the file
+            await decryptGpgFile(downloadedFilePath, path.join(__dirname, 'decryptedFile.csv'));
+            // read the decrypted file
+            const decryptedData = await fs.promises.readFile(path.join(__dirname, 'decryptedFile.csv'), 'utf8');
+            var parsedFile = [];
+            await new Promise((resolve, reject) => {
+                Papa.parse(decryptedData, {
+                    header: false,
+                    skipEmptyLines: true,
+                    complete: (results) => {
+                        parsedFile = results.data;
+                        resolve();
+                    },
+                    error: (err) => {
+                        reject(err);
+                    }
+                });
             });
-        });
-
-        return res.status(200).send(parsedResults);
-    } catch (err) {
-        console.error(err);
-        res.status(500).send('Error fetching file');
+            parsedResults = [...parsedResults, ...parsedFile];
+            // delete the downloaded and decrypted files
+            fs.unlinkSync(downloadedFilePath);
+            fs.unlinkSync(path.join(__dirname, 'decryptedFile.csv'));
+        }
+        await sftp.end();
+        return res.status(200).json({ data: parsedResults, lastFile: fileNamesToFeth[fileNamesToFeth.length - 1] })
+    }
+    catch (err) {
+        return res.status(500).json({ error: err, message: 'Error while fetching files from FTP' });
     }
 });
 
