@@ -4,7 +4,7 @@ const path = require('path');
 const app = express();
 const port = 3000;
 const gpg = require('gpg');
-
+const Papa = require("papaparse")
 // load sftp module
 const Client = require('ssh2-sftp-client');
 const sftp = new Client();
@@ -153,9 +153,22 @@ app.get('/getEasyJetFilesFromFtp', async (req, res) => {
         await decryptGpgFile(downloadedFilePath, path.join(__dirname, 'decryptedFile.csv'));
         // read the decrypted file
         const decryptedData = await fs.promises.readFile(path.join(__dirname, 'decryptedFile.csv'), 'utf8');
+        var parsedResults = [];
+        await new Promise((resolve, reject) => {
+            Papa.parse(decryptedData, {
+                header: false,
+                skipEmptyLines: true,
+                complete: (results) => {
+                    parsedResults = results.data;
+                    resolve();
+                },
+                error: (err) => {
+                    reject(err);
+                }
+            });
+        });
 
-        console.log(decryptedData);
-        return res.status(200).send(decryptedData);
+        return res.status(200).send(parsedResults);
     } catch (err) {
         console.error(err);
         res.status(500).send('Error fetching file');
