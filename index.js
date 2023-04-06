@@ -140,7 +140,6 @@ async function decryptGpgFile(encryptedFilePath, outputFilePath) {
 
 
 app.post('/getEasyJetFilesFromFtp', jsonParser,async (req, res) => {
-    console.log(req);
     var fileNamesToFeth = [...req.body.fileNames]
     var parsedResults = [];
     try {
@@ -151,9 +150,9 @@ app.post('/getEasyJetFilesFromFtp', jsonParser,async (req, res) => {
             password: '~f0q/ugRR*K]',
         });
         const list = await sftp.list('/dmc_cosmo/Cosmo/outgoing/live');
-        console.log(list);
         for (var i = 0; i < fileNamesToFeth.length; i++) {
             const cryptFile = list.find((file) => file.name === fileNamesToFeth[i].trim());
+            console.log(cryptFile);
             // download the file
             const downloadedFilePath = path.join(__dirname, cryptFile.name);
             await sftp.get(`/dmc_cosmo/Cosmo/outgoing/live/${cryptFile.name}`, downloadedFilePath);
@@ -176,6 +175,7 @@ app.post('/getEasyJetFilesFromFtp', jsonParser,async (req, res) => {
                 });
             });
             parsedResults = [...parsedResults, ...parsedFile];
+            console.log(parsedResults);
             // delete the downloaded and decrypted files
             fs.unlinkSync(downloadedFilePath);
             fs.unlinkSync(path.join(__dirname, 'decryptedFile.csv'));
