@@ -135,7 +135,7 @@ async function decryptGpgFile(encryptedFilePath, outputFilePath) {
 }
 
 
-app.get('/getEasyJetFilesFromFtp', async (req, res) => {
+app.post('/getEasyJetFilesFromFtp', async (req, res) => {
     var fileNamesToFeth = [...req.body.fileNames]
     var parsedResults = [];
     try {
