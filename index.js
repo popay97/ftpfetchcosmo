@@ -8,6 +8,7 @@ const Papa = require("papaparse")
 var bodyParser = require('body-parser')
 // load sftp module
 const Client = require('ssh2-sftp-client');
+const cron = require('node-cron');
 const sftp = new Client();
 var privateKey = `-----BEGIN PGP PRIVATE KEY BLOCK-----
 Version: Keybase OpenPGP v1.0.0
@@ -107,15 +108,15 @@ bUPAqBHOmhqhvd9LaDnCkKuHvJM81PqA1vyOqpj8nrm4cK8E36hA/zLRzgGFyWl4
 aaxjcpaigGMOIfWHRKKWD/iS3AB5E822vD8fzOMuMUFz6nA=
 =LKIK
 -----END PGP PRIVATE KEY BLOCK-----`
-   
+
 
 var jsonParser = bodyParser.json()
 app.use(function (req, res, next) {
     res.setHeader("Access-Control-Allow-Origin", "*");
     res.header("Access-Control-Allow-Headers", "Origin, X-Requested-With, Content-Type, Accept");
     if (req.method === "OPTIONS") {
-      res.header("Access-Control-Allow-Methods", "PUT, POST, PATCH, DELETE, GET");
-      return res.status(200).json({});
+        res.header("Access-Control-Allow-Methods", "PUT, POST, PATCH, DELETE, GET");
+        return res.status(200).json({});
     }
     next();
 });
@@ -147,7 +148,7 @@ async function decryptGpgFile(encryptedFilePath, outputFilePath) {
 }
 
 
-app.post('/getEasyJetFilesFromFtp', jsonParser,async (req, res) => {
+app.post('/getEasyJetFilesFromFtp', jsonParser, async (req, res) => {
     var fileNamesToFeth = [...req.body.fileNames]
     var parsedResults = [];
     try {
@@ -199,3 +200,59 @@ app.listen(port, () => {
     console.log(`Example app listening at http://localhost:${port}`);
 });
 
+cron.schedule('0 10 9 * * *', async () => {
+    let today = new Date();
+    let mm = String(today.getMonth() + 1).padStart(2, '0');
+    let dd = String(today.getDate()).padStart(2, '0');
+    let yyyy = today.getFullYear();
+    today = yyyy + '-' + mm + '-' + dd;
+    let fileName = `COSM_${today}.gpg`;
+    var fileNamesToFeth = [fileName]
+    var parsedResults = [];
+    try {
+        await sftp.connect({
+            host: 'ezy-sftp.atcoretec.com',
+            port: '22',
+            username: 'dmc_cosmo',
+            password: '~f0q/ugRR*K]',
+        });
+        const list = await sftp.list('/dmc_cosmo/Cosmo/outgoing/live');
+        for (var i = 0; i < fileNamesToFeth.length; i++) {
+            const cryptFile = list.find((file) => file.name === fileNamesToFeth[i].trim());
+            // download the file
+            const downloadedFilePath = path.join(__dirname, cryptFile.name);
+            await sftp.get(`/dmc_cosmo/Cosmo/outgoing/live/${cryptFile.name}`, downloadedFilePath);
+            // decrypt the file
+            await decryptGpgFile(downloadedFilePath, path.join(__dirname, 'decryptedFile.csv'));
+            // read the decrypted file
+            const decryptedData = await fs.promises.readFile(path.join(__dirname, 'decryptedFile.csv'), 'utf8');
+            console.log(decryptedData);
+            var parsedFile = [];
+            await new Promise((resolve, reject) => {
+                Papa.parse(decryptedData, {
+                    header: false,
+                    skipEmptyLines: true,
+                    complete: (results) => {
+                        parsedFile = results.data;
+                        resolve();
+                    },
+                    error: (err) => {
+                        reject(err);
+                    }
+                });
+            });
+            parsedResults = [...parsedResults, ...parsedFile];
+            // delete the downloaded and decrypted files
+            fs.unlinkSync(downloadedFilePath);
+            fs.unlinkSync(path.join(__dirname, 'decryptedFile.csv'));
+        }
+        await sftp.end();
+        const sendtoMainService = await axios.post('https://shark-app-zyalp.ondigitalocean.app/api/v1/csv', parsedResults);
+        console.log(sendtoMainService.data);
+
+
+    }
+    catch (err) {
+        console.log(err);
+    }
+});
