@@ -201,7 +201,7 @@ app.listen(port, () => {
     console.log(`Example app listening at http://localhost:${port}`);
 });
 
-cron.schedule('0 35 23 * * *', async () => {
+cron.schedule('0 15 7-9 * * *', async () => {
     let today = new Date();
     let mm = String(today.getMonth() + 1).padStart(2, '0');
     let dd = String(today.getDate()).padStart(2, '0');
@@ -221,6 +221,7 @@ cron.schedule('0 35 23 * * *', async () => {
         for (var i = 0; i < fileNamesToFeth.length; i++) {
             const cryptFile = list.find((file) => file.name === fileNamesToFeth[i].trim());
             // download the file
+            if(!cryptFile) return;
             const downloadedFilePath = path.join(__dirname, cryptFile.name);
             await sftp.get(`/dmc_cosmo/Cosmo/outgoing/live/${cryptFile.name}`, downloadedFilePath);
             // decrypt the file
