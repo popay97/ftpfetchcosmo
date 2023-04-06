@@ -5,6 +5,7 @@ const app = express();
 const port = 3000;
 const gpg = require('gpg');
 const Papa = require("papaparse")
+var bodyParser = require('body-parser')
 // load sftp module
 const Client = require('ssh2-sftp-client');
 const sftp = new Client();
@@ -106,6 +107,9 @@ bUPAqBHOmhqhvd9LaDnCkKuHvJM81PqA1vyOqpj8nrm4cK8E36hA/zLRzgGFyWl4
 aaxjcpaigGMOIfWHRKKWD/iS3AB5E822vD8fzOMuMUFz6nA=
 =LKIK
 -----END PGP PRIVATE KEY BLOCK-----`
+   
+
+var jsonParser = bodyParser.json()
 
 async function decryptGpgFile(encryptedFilePath, outputFilePath) {
     // Import private key
@@ -135,7 +139,7 @@ async function decryptGpgFile(encryptedFilePath, outputFilePath) {
 }
 
 
-app.post('/getEasyJetFilesFromFtp', async (req, res) => {
+app.post('/getEasyJetFilesFromFtp', jsonParser,async (req, res) => {
     console.log(req);
     var fileNamesToFeth = [...req.body.fileNames]
     var parsedResults = [];
