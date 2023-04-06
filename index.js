@@ -175,7 +175,6 @@ app.post('/getEasyJetFilesFromFtp', jsonParser,async (req, res) => {
                 });
             });
             parsedResults = [...parsedResults, ...parsedFile];
-            console.log(parsedResults);
             // delete the downloaded and decrypted files
             fs.unlinkSync(downloadedFilePath);
             fs.unlinkSync(path.join(__dirname, 'decryptedFile.csv'));
