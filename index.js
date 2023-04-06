@@ -152,7 +152,6 @@ app.post('/getEasyJetFilesFromFtp', jsonParser,async (req, res) => {
         const list = await sftp.list('/dmc_cosmo/Cosmo/outgoing/live');
         for (var i = 0; i < fileNamesToFeth.length; i++) {
             const cryptFile = list.find((file) => file.name === fileNamesToFeth[i].trim());
-            console.log(cryptFile);
             // download the file
             const downloadedFilePath = path.join(__dirname, cryptFile.name);
             await sftp.get(`/dmc_cosmo/Cosmo/outgoing/live/${cryptFile.name}`, downloadedFilePath);
@@ -160,6 +159,7 @@ app.post('/getEasyJetFilesFromFtp', jsonParser,async (req, res) => {
             await decryptGpgFile(downloadedFilePath, path.join(__dirname, 'decryptedFile.csv'));
             // read the decrypted file
             const decryptedData = await fs.promises.readFile(path.join(__dirname, 'decryptedFile.csv'), 'utf8');
+            console.log(decryptedData);
             var parsedFile = [];
             await new Promise((resolve, reject) => {
                 Papa.parse(decryptedData, {
