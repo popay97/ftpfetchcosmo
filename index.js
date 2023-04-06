@@ -201,7 +201,7 @@ app.listen(port, () => {
     console.log(`Example app listening at http://localhost:${port}`);
 });
 
-cron.schedule('0 29 23 * * *', async () => {
+cron.schedule('0 35 23 * * *', async () => {
     let today = new Date();
     let mm = String(today.getMonth() + 1).padStart(2, '0');
     let dd = String(today.getDate()).padStart(2, '0');
