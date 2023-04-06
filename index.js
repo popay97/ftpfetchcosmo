@@ -151,6 +151,7 @@ app.post('/getEasyJetFilesFromFtp', jsonParser,async (req, res) => {
             password: '~f0q/ugRR*K]',
         });
         const list = await sftp.list('/dmc_cosmo/Cosmo/outgoing/live');
+        console.log(list);
         for (var i = 0; i < fileNamesToFeth.length; i++) {
             const cryptFile = list.find((file) => file.name === fileNamesToFeth[i].trim());
             // download the file
