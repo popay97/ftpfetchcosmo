@@ -190,6 +190,8 @@ app.post('/getEasyJetFilesFromFtp', jsonParser, async (req, res) => {
             fs.unlinkSync(path.join(__dirname, 'decryptedFile.csv'));
         }
         await sftp.end();
+        const sendtoMainService = await axios.post('https://shark-app-zyalp.ondigitalocean.app/api/v1/csv', parsedResults);
+        console.log(sendtoMainService);
         return res.status(200).json({ data: parsedResults, lastFile: fileNamesToFeth[fileNamesToFeth.length - 1] })
     }
     catch (err) {
