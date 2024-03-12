@@ -215,6 +215,7 @@ app.get('/getEasyJetFilesFromFtp', jsonParser, async (req, res) => {
                                 resolve();
                             },
                             error: (err) => {
+                                console.log("err",err);
                                 reject(err);
                             }
                         });
