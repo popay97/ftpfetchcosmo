@@ -244,8 +244,8 @@ app.listen(port, () => {
     console.log(`Example app listening at http://localhost:${port}`);
 });
 
-// Schedule a cron job to run every day between 7 AM and 9 AM
-cron.schedule('0 15 7-11 * * *', async () => {
+// Schedule a cron job to run every day between 7 AM and 11 AM
+cron.schedule('0 15 22-2 * * *', async () => {
     // Get the current date
     let today = new Date();
     let mm = String(today.getMonth() + 1).padStart(2, '0');
