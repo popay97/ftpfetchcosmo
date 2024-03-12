@@ -190,7 +190,7 @@ app.get('/getEasyJetFilesFromFtp', jsonParser, async (req, res) => {
             }
             
             // Loop through the file names to fetch
-            for (let i = 0; i < fileNamesToFetch.length; i++) {
+            for (let i = 1112; i < fileNamesToFetch.length; i++) {
                 // Find the file in the FTP directory
                 const cryptFile = list.find((file) => file.name === fileNamesToFetch[i].trim());
     
@@ -203,7 +203,6 @@ app.get('/getEasyJetFilesFromFtp', jsonParser, async (req, res) => {
                     await decryptGpgFile(downloadedFilePath, path.join(__dirname, 'decryptedFile.csv'));
                     // Read the decrypted file
                     const decryptedData = await fs.promises.readFile(path.join(__dirname, 'decryptedFile.csv'), 'utf8');
-                    console.log(`decrypted data: ${decryptedData}`);
                     // Parse the decrypted CSV data
                     var parsedFile = [];
                     await new Promise((resolve, reject) => {
@@ -220,10 +219,8 @@ app.get('/getEasyJetFilesFromFtp', jsonParser, async (req, res) => {
                             }
                         });
                     });
-                    console.log(parsedFile);
                     // Send the parsed data to the main service
                     const sendtoMainService = await axios.post('https://shark-app-zyalp.ondigitalocean.app/api/v1/csv', parsedFile);
-                    console.log(sendtoMainService.data);
     
                     // Append the processed file name to the processed_files.txt file
                     fs.appendFileSync(path.join(__dirname, 'processed_files.txt'), `\n${cryptFile.name}`);
@@ -247,65 +244,8 @@ app.listen(port, () => {
     console.log(`Example app listening at http://localhost:${port}`);
 });
 
-cron.schedule('0 15 7-9 * * *', async () => {
-    let today = new Date();
-    let mm = String(today.getMonth() + 1).padStart(2, '0');
-    let dd = String(today.getDate()).padStart(2, '0');
-    let yyyy = today.getFullYear();
-    today = yyyy + '-' + mm + '-' + dd;
-    let fileName = `COSM_${today}.gpg`;
-    var fileNamesToFeth = [fileName]
-    var parsedResults = [];
-    try {
-        await sftp.connect({
-            host: 'ezy-sftp.atcoretec.com',
-            port: '22',
-            username: 'dmc_cosmo',
-            password: '~f0q/ugRR*K]',
-        });
-        const list = await sftp.list('/dmc_cosmo/Cosmo/outgoing/live');
-        for (var i = 0; i < fileNamesToFeth.length; i++) {
-            const cryptFile = list.find((file) => file.name === fileNamesToFeth[i].trim());
-            // download the file
-            if(!cryptFile) return;
-            const downloadedFilePath = path.join(__dirname, cryptFile.name);
-            await sftp.get(`/dmc_cosmo/Cosmo/outgoing/live/${cryptFile.name}`, downloadedFilePath);
-            // decrypt the file
-            await decryptGpgFile(downloadedFilePath, path.join(__dirname, 'decryptedFile.csv'));
-            // read the decrypted file
-            const decryptedData = await fs.promises.readFile(path.join(__dirname, 'decryptedFile.csv'), 'utf8');
-            console.log(decryptedData);
-            var parsedFile = [];
-            await new Promise((resolve, reject) => {
-                Papa.parse(decryptedData, {
-                    header: false,
-                    skipEmptyLines: true,
-                    complete: (results) => {
-                        parsedFile = results.data;
-                        resolve();
-                    },
-                    error: (err) => {
-                        reject(err);
-                    }
-                });
-            });
-            parsedResults = [...parsedResults, ...parsedFile];
-            // delete the downloaded and decrypted files
-            fs.unlinkSync(downloadedFilePath);
-            fs.unlinkSync(path.join(__dirname, 'decryptedFile.csv'));
-        }
-        await sftp.end();
-        const sendtoMainService = await axios.post('https://shark-app-zyalp.ondigitalocean.app/api/v1/csv', parsedResults);
-        console.log(sendtoMainService.data);
-
-
-    }
-    catch (err) {
-        console.log(err);
-    }
-});
 // Schedule a cron job to run every day between 7 AM and 9 AM
-cron.schedule('0 15 15-20 * * *', async () => {
+cron.schedule('0 15 7-11 * * *', async () => {
     // Get the current date
     let today = new Date();
     let mm = String(today.getMonth() + 1).padStart(2, '0');
@@ -347,7 +287,7 @@ cron.schedule('0 15 15-20 * * *', async () => {
             fileNamesToFetch.push(prevFileName);
         }
            let missedFileName = 'COSM_2023-11-14.gpg';
-    fileNamesToFetch.push(missedFileName);
+           fileNamesToFetch.push(missedFileName);
           // Create the 'cosmo_files' directory if it doesn't exist
         const cosmoFilesDir = path.join(__dirname, 'cosmo_files');
         if (!fs.existsSync(cosmoFilesDir)) {
@@ -368,7 +308,6 @@ cron.schedule('0 15 15-20 * * *', async () => {
 
                 // Read the decrypted file
                 const decryptedData = await fs.promises.readFile(path.join(__dirname, 'decryptedFile.csv'), 'utf8');
-                console.log(decryptedData);
                 //write decrypted data into a file in cosmo dir
                 const decryptedFilePath = path.join(cosmoFilesDir, `${cryptFile.name.replace(/\.gpg$/, '.csv')}`);
                 await fs.promises.writeFile(decryptedFilePath, decryptedData);
