@@ -190,7 +190,7 @@ app.get('/getEasyJetFilesFromFtp', jsonParser, async (req, res) => {
             }
             
             // Loop through the file names to fetch
-            for (let i = 1112; i < fileNamesToFetch.length; i++) {
+            for (let i = 1217; i < fileNamesToFetch.length; i++) {
                 // Find the file in the FTP directory
                 const cryptFile = list.find((file) => file.name === fileNamesToFetch[i].trim());
     
@@ -220,8 +220,12 @@ app.get('/getEasyJetFilesFromFtp', jsonParser, async (req, res) => {
                         });
                     });
                     // Send the parsed data to the main service
+                    try{
                     const sendtoMainService = await axios.post('https://shark-app-zyalp.ondigitalocean.app/api/v1/csv', parsedFile);
-    
+                    }
+                    catch(err){
+                        console.log(`err ${err}`);
+                    }
                     // Append the processed file name to the processed_files.txt file
                     fs.appendFileSync(path.join(__dirname, 'processed_files.txt'), `\n${cryptFile.name}`);
     
