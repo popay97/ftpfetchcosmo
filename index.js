@@ -167,7 +167,8 @@ app.get('/getEasyJetFilesFromFtp', jsonParser, async (req, res) => {
     
             // Get the list of files in the FTP directory
             const list = await sftp.list('/dmc_cosmo/Cosmo/outgoing/live');
-            fileNamesToFetch = list.map((file) => file.name).filter(name => !name.endsWith(".gpg"));
+            fileNamesToFetch = list.map((file) => file.name).filter((name) => name.endsWith(".gpg"));
+            console.log(fileNamesToFetch);
             const filePath = path.join(__dirname, 'processed_files.txt');
     
             let processedFiles;
@@ -189,7 +190,6 @@ app.get('/getEasyJetFilesFromFtp', jsonParser, async (req, res) => {
             }
             
             // Loop through the file names to fetch
-            fileNamesToFetch = fileNamesToFetch.filter((file) => file.length < 4);
             for (let i = 0; i < fileNamesToFetch.length; i++) {
                 // Find the file in the FTP directory
                 const cryptFile = list.find((file) => file.name === fileNamesToFetch[i].trim());
