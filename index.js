@@ -167,7 +167,7 @@ app.get('/getEasyJetFilesFromFtp', jsonParser, async (req, res) => {
     
             // Get the list of files in the FTP directory
             const list = await sftp.list('/dmc_cosmo/Cosmo/outgoing/live');
-            fileNamesToFetch = list.map((file) => file.name);
+            fileNamesToFetch = list.map((file) => file.name).filter(name => !name.endsWith(".gpg"));
             const filePath = path.join(__dirname, 'processed_files.txt');
     
             let processedFiles;
