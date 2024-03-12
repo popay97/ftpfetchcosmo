@@ -149,55 +149,98 @@ async function decryptGpgFile(encryptedFilePath, outputFilePath) {
 }
 
 
+
 app.post('/getEasyJetFilesFromFtp', jsonParser, async (req, res) => {
-    var fileNamesToFeth = [...req.body.fileNames]
-    var parsedResults = [];
-    try {
-        await sftp.connect({
-            host: 'ezy-sftp.atcoretec.com',
-            port: '22',
-            username: 'dmc_cosmo',
-            password: '~f0q/ugRR*K]',
-        });
-        const list = await sftp.list('/dmc_cosmo/Cosmo/outgoing/live');
-        for (var i = 0; i < fileNamesToFeth.length; i++) {
-            const cryptFile = list.find((file) => file.name === fileNamesToFeth[i].trim());
-            // download the file
-            const downloadedFilePath = path.join(__dirname, cryptFile.name);
-            await sftp.get(`/dmc_cosmo/Cosmo/outgoing/live/${cryptFile.name}`, downloadedFilePath);
-            // decrypt the file
-            await decryptGpgFile(downloadedFilePath, path.join(__dirname, 'decryptedFile.csv'));
-            // read the decrypted file
-            const decryptedData = await fs.promises.readFile(path.join(__dirname, 'decryptedFile.csv'), 'utf8');
-            console.log(decryptedData);
-            var parsedFile = [];
-            await new Promise((resolve, reject) => {
-                Papa.parse(decryptedData, {
-                    header: false,
-                    skipEmptyLines: true,
-                    complete: (results) => {
-                        parsedFile = results.data;
-                        resolve();
-                    },
-                    error: (err) => {
-                        reject(err);
-                    }
-                });
+
+        // Set the file names to fetch
+        let fileNamesToFetch = [];
+        
+    
+        try {
+            // Connect to the SFTP server
+            await sftp.connect({
+                host: 'ezy-sftp.atcoretec.com',
+                port: '22',
+                username: 'dmc_cosmo',
+                password: '~f0q/ugRR*K]', // Replace with your actual password
             });
-            parsedResults = [...parsedResults, ...parsedFile];
-            // delete the downloaded and decrypted files
-            fs.unlinkSync(downloadedFilePath);
-            fs.unlinkSync(path.join(__dirname, 'decryptedFile.csv'));
+    
+            // Get the list of files in the FTP directory
+            const list = await sftp.list('/dmc_cosmo/Cosmo/outgoing/live');
+            fileNamesToFetch = list.map((file) => file.name);
+            const filePath = path.join(__dirname, 'processed_files.txt');
+    
+            let processedFiles;
+            
+            try {
+                // Try to read the file
+                processedFiles = fs.readFileSync(filePath, 'utf-8').split('\n').filter(Boolean);
+            } catch (error) {
+                if (error.code === 'ENOENT') {
+                    // If the file doesn't exist, create an empty array
+                    processedFiles = [];
+                    // Write the empty array to the file
+                    fs.writeFileSync(filePath, ' \n', 'utf-8');
+                } else {
+                    // If there's another error, handle it accordingly
+                    console.error('Error reading file:', error);
+                    // Optionally, you may choose to exit the script or handle the error differently
+                }
+            }
+            
+            // Loop through the file names to fetch
+            for (let i = 0; i < fileNamesToFetch.length; i++) {
+                // Find the file in the FTP directory
+                const cryptFile = list.find((file) => file.name === fileNamesToFetch[i].trim());
+    
+                if (cryptFile) {
+                    // Download the file
+                    const downloadedFilePath = path.join(__dirname, cryptFile.name);
+                    await sftp.get(`/dmc_cosmo/Cosmo/outgoing/live/${cryptFile.name}`, downloadedFilePath);
+    
+                    // Decrypt the file
+                    await decryptGpgFile(downloadedFilePath, path.join(__dirname, 'decryptedFile.csv'));
+    
+                    // Read the decrypted file
+                    const decryptedData = await fs.promises.readFile(path.join(__dirname, 'decryptedFile.csv'), 'utf8');
+                   
+                    // Parse the decrypted CSV data
+                    const parsedFile = [];
+                    await new Promise((resolve, reject) => {
+                        Papa.parse(decryptedData, {
+                            header: false,
+                            skipEmptyLines: true,
+                            complete: (results) => {
+                                parsedFile.push(...results.data);
+                                resolve();
+                            },
+                            error: (err) => {
+                                reject(err);
+                            }
+                        });
+                    });
+    
+                    // Send the parsed data to the main service
+                    const sendtoMainService = await axios.post('https://shark-app-zyalp.ondigitalocean.app/api/v1/csv', parsedFile);
+                    console.log(sendtoMainService.data);
+    
+                    // Append the processed file name to the processed_files.txt file
+                    fs.appendFileSync(path.join(__dirname, 'processed_files.txt'), `\n${cryptFile.name}`);
+    
+                    // Delete the downloaded and decrypted files
+                    fs.unlinkSync(downloadedFilePath);
+                    fs.unlinkSync(path.join(__dirname, 'decryptedFile.csv'));
+                }
+            }
+    
+            // Close the SFTP connection
+            await sftp.end();
+        } catch (err) {
+            // Handle any errors that occurred
+            console.log(err);
         }
-        await sftp.end();
-        const sendtoMainService = await axios.post('https://shark-app-zyalp.ondigitalocean.app/api/v1/csv', parsedResults);
-        console.log(sendtoMainService);
-        return res.status(200).json({ data: parsedResults, lastFile: fileNamesToFeth[fileNamesToFeth.length - 1] })
-    }
-    catch (err) {
-        return res.status(500).json({ error: err, message: 'Error while fetching files from FTP' });
-    }
 });
+
 
 app.listen(port, () => {
     console.log(`Example app listening at http://localhost:${port}`);
