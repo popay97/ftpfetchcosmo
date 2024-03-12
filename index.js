@@ -286,8 +286,6 @@ cron.schedule('0 15 7-11 * * *', async () => {
             // If the file for yesterday has not been processed, add it to the list of files to fetch
             fileNamesToFetch.push(prevFileName);
         }
-           let missedFileName = 'COSM_2023-11-14.gpg';
-           fileNamesToFetch.push(missedFileName);
           // Create the 'cosmo_files' directory if it doesn't exist
         const cosmoFilesDir = path.join(__dirname, 'cosmo_files');
         if (!fs.existsSync(cosmoFilesDir)) {
