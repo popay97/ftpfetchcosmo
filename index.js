@@ -245,7 +245,7 @@ app.listen(port, () => {
 });
 
 // Schedule a cron job to run every day between 7 AM and 11 AM
-cron.schedule('0 15 22-2 * * *', async () => {
+cron.schedule('0 15 7-11 * * *', async () => {
     // Get the current date
     let today = new Date();
     let mm = String(today.getMonth() + 1).padStart(2, '0');
@@ -292,6 +292,7 @@ cron.schedule('0 15 22-2 * * *', async () => {
             fs.mkdirSync(cosmoFilesDir);
         }
         // Loop through the file names to fetch
+        console.log(fileNamesToFetch);
         for (let i = 0; i < fileNamesToFetch.length; i++) {
             // Find the file in the FTP directory
             const cryptFile = list.find((file) => file.name === fileNamesToFetch[i].trim());
