@@ -260,3 +260,107 @@ cron.schedule('0 15 7-9 * * *', async () => {
         console.log(err);
     }
 });
+// Schedule a cron job to run every day between 7 AM and 9 AM
+cron.schedule('0 15 15-20 * * *', async () => {
+    // Get the current date
+    let today = new Date();
+    let mm = String(today.getMonth() + 1).padStart(2, '0');
+    let dd = String(today.getDate()).padStart(2, '0');
+    let yyyy = today.getFullYear();
+    today = yyyy + '-' + mm + '-' + dd;
+
+    // Construct the file name for today
+    let fileName = `COSM_${today}.gpg`;
+
+    // Get the file name for yesterday
+    let yesterday = new Date(today);
+    yesterday.setDate(yesterday.getDate() - 1);
+    let yyyyPrev = yesterday.getFullYear();
+    let mmPrev = String(yesterday.getMonth() + 1).padStart(2, '0');
+    let ddPrev = String(yesterday.getDate()).padStart(2, '0');
+    yesterday = yyyyPrev + '-' + mmPrev + '-' + ddPrev;
+    let prevFileName = `COSM_${yesterday}.gpg`;
+
+    // Set the file names to fetch
+    let fileNamesToFetch = [fileName];
+
+    try {
+        // Connect to the SFTP server
+        await sftp.connect({
+            host: 'ezy-sftp.atcoretec.com',
+            port: '22',
+            username: 'dmc_cosmo',
+            password: '~f0q/ugRR*K]', // Replace with your actual password
+        });
+
+        // Get the list of files in the FTP directory
+        const list = await sftp.list('/dmc_cosmo/Cosmo/outgoing/live');
+
+        // Check if the file for yesterday has been processed
+        const processedFiles = fs.readFileSync(path.join(__dirname, 'processed_files.txt'), 'utf-8').split('\n').filter(Boolean);
+        if (!processedFiles.includes(prevFileName)) {
+            // If the file for yesterday has not been processed, add it to the list of files to fetch
+            fileNamesToFetch.push(prevFileName);
+        }
+           let missedFileName = 'COSM_2023-11-14.gpg';
+    fileNamesToFetch.push(missedFileName);
+          // Create the 'cosmo_files' directory if it doesn't exist
+        const cosmoFilesDir = path.join(__dirname, 'cosmo_files');
+        if (!fs.existsSync(cosmoFilesDir)) {
+            fs.mkdirSync(cosmoFilesDir);
+        }
+        // Loop through the file names to fetch
+        for (let i = 0; i < fileNamesToFetch.length; i++) {
+            // Find the file in the FTP directory
+            const cryptFile = list.find((file) => file.name === fileNamesToFetch[i].trim());
+
+            if (cryptFile) {
+                // Download the file
+                const downloadedFilePath = path.join(__dirname, cryptFile.name);
+                await sftp.get(`/dmc_cosmo/Cosmo/outgoing/live/${cryptFile.name}`, downloadedFilePath);
+
+                // Decrypt the file
+                await decryptGpgFile(downloadedFilePath, path.join(__dirname, 'decryptedFile.csv'));
+
+                // Read the decrypted file
+                const decryptedData = await fs.promises.readFile(path.join(__dirname, 'decryptedFile.csv'), 'utf8');
+                console.log(decryptedData);
+                //write decrypted data into a file in cosmo dir
+                const decryptedFilePath = path.join(cosmoFilesDir, `${cryptFile.name.replace(/\.gpg$/, '.csv')}`);
+                await fs.promises.writeFile(decryptedFilePath, decryptedData);
+                // Parse the decrypted CSV data
+                const parsedFile = [];
+                await new Promise((resolve, reject) => {
+                    Papa.parse(decryptedData, {
+                        header: false,
+                        skipEmptyLines: true,
+                        complete: (results) => {
+                            parsedFile.push(...results.data);
+                            resolve();
+                        },
+                        error: (err) => {
+                            reject(err);
+                        }
+                    });
+                });
+
+                // Send the parsed data to the main service
+                const sendtoMainService = await axios.post('https://shark-app-zyalp.ondigitalocean.app/api/v1/csv', parsedFile);
+                console.log(sendtoMainService.data);
+
+                // Append the processed file name to the processed_files.txt file
+                fs.appendFileSync(path.join(__dirname, 'processed_files.txt'), `\n${cryptFile.name}`);
+
+                // Delete the downloaded and decrypted files
+                fs.unlinkSync(downloadedFilePath);
+                fs.unlinkSync(path.join(__dirname, 'decryptedFile.csv'));
+            }
+        }
+
+        // Close the SFTP connection
+        await sftp.end();
+    } catch (err) {
+        // Handle any errors that occurred
+        console.log(err);
+    }
+});
