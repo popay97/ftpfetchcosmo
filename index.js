@@ -189,7 +189,7 @@ app.get('/getEasyJetFilesFromFtp', jsonParser, async (req, res) => {
             }
             
             // Loop through the file names to fetch
-            fileNamesToFetch = fileNamesToFetch.filter((file) => file.length < 4));
+            fileNamesToFetch = fileNamesToFetch.filter((file) => file.length < 4);
             for (let i = 0; i < fileNamesToFetch.length; i++) {
                 // Find the file in the FTP directory
                 const cryptFile = list.find((file) => file.name === fileNamesToFetch[i].trim());
