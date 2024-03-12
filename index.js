@@ -195,6 +195,7 @@ app.post('/getEasyJetFilesFromFtp', jsonParser, async (req, res) => {
     
                 if (cryptFile) {
                     // Download the file
+                    console.log(`processing file: ${cryptFile.name} index: ${i}`);
                     const downloadedFilePath = path.join(__dirname, cryptFile.name);
                     await sftp.get(`/dmc_cosmo/Cosmo/outgoing/live/${cryptFile.name}`, downloadedFilePath);
     
