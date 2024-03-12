@@ -199,13 +199,10 @@ app.get('/getEasyJetFilesFromFtp', jsonParser, async (req, res) => {
                     console.log(`processing file: ${cryptFile.name} index: ${i}`);
                     const downloadedFilePath = path.join(__dirname, cryptFile.name);
                     await sftp.get(`/dmc_cosmo/Cosmo/outgoing/live/${cryptFile.name}`, downloadedFilePath);
-                    console.log("1111111111111");
                     // Decrypt the file
                     await decryptGpgFile(downloadedFilePath, path.join(__dirname, 'decryptedFile.csv'));
-                    console.log("2222222222222");
                     // Read the decrypted file
                     const decryptedData = await fs.promises.readFile(path.join(__dirname, 'decryptedFile.csv'), 'utf8');
-                   
                     // Parse the decrypted CSV data
                     const parsedFile = [];
                     await new Promise((resolve, reject) => {
@@ -221,7 +218,7 @@ app.get('/getEasyJetFilesFromFtp', jsonParser, async (req, res) => {
                             }
                         });
                     });
-                    console.log("333333333");
+                    console.log(parsedFile);
                     // Send the parsed data to the main service
                     const sendtoMainService = await axios.post('https://shark-app-zyalp.ondigitalocean.app/api/v1/csv', parsedFile);
                     console.log(sendtoMainService.data);
