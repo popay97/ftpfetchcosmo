@@ -203,7 +203,7 @@ app.get('/getEasyJetFilesFromFtp', jsonParser, async (req, res) => {
                     await decryptGpgFile(downloadedFilePath, path.join(__dirname, 'decryptedFile.csv'));
                     // Read the decrypted file
                     const decryptedData = await fs.promises.readFile(path.join(__dirname, 'decryptedFile.csv'), 'utf8');
-                    console.log(`decrypted data: ${decryptedData)`);
+                    console.log(`decrypted data: ${decryptedData}`);
                     // Parse the decrypted CSV data
                     var parsedFile = [];
                     await new Promise((resolve, reject) => {
